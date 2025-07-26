@@ -34,9 +34,11 @@ You can use `generateMock` like this
 ```ts
 import { generateMock } from 'ts-mock';
 
-const mockUser: UserProfile = generateMock("UserProfile");
-
-updateTheme(mockUser, 'dark');
-
-expect(mockUser.preferences.theme).toBe('dark');
+it('should update the user theme', () => {
+  const mockUser: UserProfile = generateMock("UserProfile");
+  
+  updateTheme(mockUser, 'dark');
+  
+  expect(mockUser.preferences.theme).toBe('dark');
+});
 ```
