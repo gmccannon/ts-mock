@@ -30,9 +30,9 @@ function updateTheme(user: UserProfile, newTheme: string): void {
 }
 ```
 
-You can use `create-partial` like this
+You can use `generateMock` like this
 ```ts
-import { createPartial } from 'ts-mock';
+import { generateMock } from 'ts-mock';
 
 const mockUser: UserProfile = generateMock("UserProfile");
 
