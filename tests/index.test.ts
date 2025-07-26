@@ -33,8 +33,9 @@ describe("generateMock", () => {
     expect(typeof mockUser.preferences.theme).toBe("string");
     expect(typeof mockUser.preferences.notifications).toBe("boolean");
 
+    expect(mockUser.createdAt).toBeDefined();
     expect(mockUser.createdAt).toBeInstanceOf(Date);
-    expect(typeof mockUser.createdAt).toBe("object");
+    expect(!isNaN(mockUser.createdAt.getTime())).toBe(true);
   });
 
   it("respects overrides", () => {
@@ -50,11 +51,11 @@ describe("generateMock", () => {
 
   it("applies overrides deeply", () => {
     const mockUser: UserProfile = generateMock("UserProfile", {
-      preferences: { theme: "light", notifications: false },
+      preferences: { theme: "light" },
     });
 
     expect(mockUser.preferences.theme).toBe("light");
-    expect(mockUser.preferences.notifications).toBe(false);
+    expect(mockUser.preferences.notifications).toBeDefined();
   });
 
   it("overrides only some values and preserves the rest", () => {

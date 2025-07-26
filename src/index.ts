@@ -51,7 +51,6 @@ export function generateMock(typeName: string, overrides: Record<string, any> = 
 
   const mock = mockFromType(foundType);
   return deepMerge(mock, overrides);
-
 }
 
 function mockFromType(type: Type): any {
