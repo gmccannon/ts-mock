@@ -2,20 +2,6 @@ import { Project, ts, Type } from "ts-morph";
 import path from "path";
 import fs from "fs";
 
-type UserProfile = {
-  id: number;
-  name: string;
-  address: {
-    city: string;
-    zip: string;
-  };
-  preferences: {
-    theme: string;
-    notifications: boolean;
-  };
-  createdAt: Date;
-};
-
 function findTsConfig(startDir: string): string | null {
   let currentDir = path.resolve(startDir);
 
