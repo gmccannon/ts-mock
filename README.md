@@ -35,7 +35,9 @@ You can use `generateMock` like this
 import { generateMock } from 'ts-mock';
 
 it('should update the user theme', () => {
-  const mockUser: UserProfile = generateMock("UserProfile");
+  const mockUser: UserProfile = generateMock("UserProfile", {
+    preferences: { theme: "light" },
+  });
   
   updateTheme(mockUser, 'dark');
   
