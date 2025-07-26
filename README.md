@@ -32,7 +32,7 @@ function updateTheme(user: UserProfile, newTheme: string): void {
 
 You can use `create-partial` like this
 ```ts
-import { createPartial } from 'create-partial';
+import { createPartial } from 'ts-mock';
 
 const mockUser = createPartial<UserProfile>({
   preferences: { theme: 'light' },
