@@ -1,7 +1,7 @@
 # ts-mock
 
 `ts-mock` is a TypeScript utility that lets you create partial mock objects of complex types for unit testing. 
-It helps keep your tests **independent and focused** by letting you specify only the fields relevant to a test case, while safely filling in the rest. 
+It helps keep tests independent and focused by letting you specify only the fields that are relevant to a test case, while safely filling in the rest. 
 It easily integrates with testing frameworks like **Vitest** and **Jest**.
 
 ## Example
@@ -21,7 +21,7 @@ type UserProfile = {
   };
   createdAt: Date;
 };
-
+```
 
 With the following function to test
 ```ts
@@ -42,4 +42,3 @@ updateTheme(mockUser, 'dark');
 
 expect(mockUser.preferences.theme).toBe('dark');
 ```
-
