@@ -34,9 +34,7 @@ You can use `create-partial` like this
 ```ts
 import { createPartial } from 'ts-mock';
 
-const mockUser = createPartial<UserProfile>({
-  preferences: { theme: 'light' },
-});
+const mockUser: UserProfile = generateMock("UserProfile");
 
 updateTheme(mockUser, 'dark');
 

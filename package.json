@@ -1,0 +1,30 @@
+{
+  "name": "ts-mock",
+  "version": "0.0.1",
+  "description": "`ts-mock` is a TypeScript utility that lets you create partial mock objects of complex types for unit testing.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gmccannon/ts-mock.git"
+  },
+  "author": "George McCannon",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gmccannon/ts-mock/issues"
+  },
+  "homepage": "https://github.com/gmccannon/ts-mock#readme",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7",
+    "ts-morph": "^26.0.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4",
+    "zod": "^4.0.10"
+  },
+  "devDependencies": {
+    "@types/node": "^24.1.0"
+  }
+}
