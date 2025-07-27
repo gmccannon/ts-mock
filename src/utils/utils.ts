@@ -17,36 +17,32 @@ export function findTsConfig(startDir: string): string | null {
   return null;
 }
 
-export function mockFromType(type: Type): any {
-  if (type.isString()) return "string";
-  if (type.isNumber()) return 1;
+export function mockFromType(type: Type<ts.Type>): any {
+  if (type.isString()) return "example";
+  if (type.isNumber()) return 42;
   if (type.isBoolean()) return true;
   if (type.getText() === "Date") return new Date();
-  if (type.isArray()) {
-    const elementType = type.getArrayElementTypeOrThrow();
-    return [mockFromType(elementType)];
+
+  const unionTypes = type.isUnion() ? type.getUnionTypes() : [];
+  if (unionTypes.length > 0) {
+    return unionTypes[0].getLiteralValue();
   }
-  if (type.isEnum() || type.isEnumLiteral()) {
-    const enumMembers = type.getSymbol()?.getDeclarations()[0].getChildrenOfKind?.(ts.SyntaxKind.EnumMember);
-    if (enumMembers && enumMembers.length > 0) {
-      return enumMembers[0].getText();
+
+  if (type.isObject()) {
+    const properties = type.getProperties();
+    const mock: Record<string, any> = {};
+
+    for (const prop of properties) {
+      const propType = prop.getTypeAtLocation(prop.getValueDeclarationOrThrow());
+      mock[prop.getName()] = mockFromType(propType);
     }
-    return null;
+
+    return mock;
   }
-  if (type.isObject() || type.isClassOrInterface()) {
-    const obj: any = {};
-    const props = type.getProperties();
-    for (const prop of props) {
-      const name = prop.getName();
-      const declarations = prop.getDeclarations();
-      if (declarations.length === 0) continue;
-      const propType = declarations[0].getType();
-      obj[name] = mockFromType(propType);
-    }
-    return obj;
-  }
+
   return null;
 }
+
 
 export function isPlainObject(obj: any): boolean {
   return Object.prototype.toString.call(obj) === "[object Object]";

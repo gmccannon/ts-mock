@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { generateMock } from "../src/index";
 
+type UserLevel = 'Admin' | 'Regular' | 'Demo' | 1 | 2 | 3;
+
 type UserProfile = {
   id: number;
   name: string;
@@ -13,6 +15,7 @@ type UserProfile = {
     notifications: boolean;
   };
   createdAt: Date;
+  level: UserLevel;
 };
 
 describe("generateMock", () => {
@@ -36,6 +39,8 @@ describe("generateMock", () => {
     expect(mockUser.createdAt).toBeDefined();
     expect(mockUser.createdAt).toBeInstanceOf(Date);
     expect(!isNaN(mockUser.createdAt.getTime())).toBe(true);
+
+    expect(mockUser.level).toBeDefined();
   });
 
   it("respects overrides", () => {
@@ -69,4 +74,14 @@ describe("generateMock", () => {
     expect(mockUser.name).toBeDefined();
     expect(mockUser.address.city).toBeDefined();
   });
+
+  it("should be able to override union types", () => {
+  const mockUser: UserProfile = generateMock("UserProfile", {
+      id: 999,
+      level: 'Regular'
+    });
+
+  expect(mockUser.id).toBe(999);
+  expect(mockUser.level).toBe("Regular");
+  })
 });
