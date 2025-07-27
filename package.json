@@ -1,11 +1,17 @@
 {
-  "name": "ts-mock",
+  "name": "ts-mockgen",
   "version": "0.0.1",
-  "description": "`ts-mock` is a TypeScript utility that lets you create partial mock objects of complex types for unit testing.",
-  "main": "index.js",
+  "description": "`ts-mockgen` is a TypeScript utility that lets you create partial mock objects of complex types for unit testing.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "rm -rf dist && tsc"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gmccannon/ts-mock.git"
@@ -30,8 +36,6 @@
     "vitest"
   ],
   "dependencies": {
-    "fs": "^0.0.1-security",
-    "path": "^0.12.7",
     "ts-morph": "^26.0.0",
     "typescript": "^5.8.3",
     "@types/node": "^24.1.0"

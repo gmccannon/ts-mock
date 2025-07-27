@@ -1,6 +1,6 @@
-# ts-mock
+# ts-mockgen
 
-`ts-mock` is a TypeScript utility that lets you create partial mock objects of complex types for unit testing. 
+`ts-mockgen` is a TypeScript utility that lets you create partial mock objects of complex types for unit testing. 
 It helps keep tests independent and focused by letting you specify only the fields that are relevant to a test case, while safely filling in the rest. 
 It easily integrates with testing frameworks like **Vitest** and **Jest**.
 
@@ -32,7 +32,7 @@ function updateTheme(user: UserProfile, newTheme: string): void {
 
 You can use `generateMock` like this
 ```ts
-import { generateMock } from 'ts-mock';
+import { generateMock } from 'ts-mockgen';
 
 it('should update the user theme', () => {
   const mockUser: UserProfile = generateMock("UserProfile", {
