@@ -25,8 +25,11 @@ type UserProfile = {
 
 With the following function to test
 ```ts
-function updateTheme(user: UserProfile, newTheme: string): void {
-  user.preferences.theme = newTheme;
+function updateTheme(user: UserProfile, newTheme: string): UserProfile {
+  return {
+    ...user
+    preferences: { theme: newTheme};
+  }
 }
 ```
 
@@ -39,8 +42,8 @@ it('should update the user theme', () => {
     preferences: { theme: "light" },
   });
   
-  updateTheme(mockUser, 'dark');
+  const updatedMockUser = updateTheme(mockUser, 'dark');
   
-  expect(mockUser.preferences.theme).toBe('dark');
+  expect(updatedMockUser.preferences.theme).toBe('dark');
 });
 ```
