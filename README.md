@@ -25,7 +25,7 @@ type UserProfile = {
 
 With the following function to test
 ```ts
-function updateTheme(user: UserProfile, newTheme: string): void {
+function updateTheme(user: UserProfile, newTheme: string): UserProfile {
   return {
     ...user
     preferences: { theme: newTheme};
