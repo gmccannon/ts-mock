@@ -1,36 +1,37 @@
 {
   "name": "ts-mockgen",
-  "version": "0.0.1",
-  "description": "ts-mockgen is a TypeScript utility that lets you create partial mock objects of complex types for unit testing.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "version": "0.0.14",
+  "description": "Generate mock objects from TypeScript types using the TypeScript AST (ts-morph).",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "prepare": "npm run build",
     "test": "vitest"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/gmccannon/ts-mockgen.git"
-  },
-  "author": "George McCannon",
-  "license": "MIT",
+  "files": [
+    "dist"
+  ],
   "keywords": [
     "typescript",
     "mock",
-    "testing",
-    "unit-testing",
     "ts-morph",
-    "type-mock",
-    "jest",
-    "vitest"
+    "testing",
+    "ast",
+    "codegen"
   ],
+  "author": "George McCannon",
+  "license": "MIT",
   "dependencies": {
-    "ts-morph": "^26.0.0"
+    "ts-morph": "^22.0.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
   },
   "devDependencies": {
-    "typescript": "^5.8.3",
-    "@types/node": "^20.0.0",
-    "vitest": "^3.2.4"
-  }
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "type": "module"
 }
