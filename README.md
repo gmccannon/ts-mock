@@ -1,7 +1,8 @@
 # ts-mockgen
 
 `ts-mockgen` is a TypeScript utility that lets you create partial mock objects of complex types for unit testing. 
-It helps keep tests independent and focused by letting you specify only the fields that are relevant to a test case, while safely filling in the rest. 
+It helps speed up development by letting you specify only the fields that are relevant to a test case, while safely filling in the rest. 
+It also ensures objects made for unit tests stay consistent with evolving type definitions.
 It easily integrates with testing frameworks like **Vitest** and **Jest**.
 
 ## Example
