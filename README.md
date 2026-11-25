@@ -11,8 +11,6 @@ It easily integrates with testing frameworks like **Vitest** and **Jest**.
 npm install -D ts-mockgen
 ```
 
-It's a test-time tool — install it as a dev dependency. It needs a reachable `tsconfig.json` (it walks up from `process.cwd()` to find one) describing the project whose types you want to mock.
-
 ## Example
 
 Suppose you have the following type:
@@ -106,6 +104,6 @@ it('marks an order as shipped without touching other fields', () => {
 | `T[]` / `ReadonlyArray<T>` / tuple (`[A, B]`) | array/tuple with each element mocked  |
 | `Map<K, V>` / `Set<T>` / `ReadonlyMap<K, V>` / `ReadonlySet<T>` | empty `Map`/`Set` instance |
 | `Promise<T>`                        | `Promise.resolve(mockOfT)`                      |
-| `Record<K, V>` / index signature    | `{}` by default — see [Options](#options) to populate sample entries |
+| `Record<K, V>` / index signature    | `{}` by default |
 | function (`() => void`)             | a callable no-op                                |
 | self-referential / circular type    | bottoms out instead of recursing forever        |
