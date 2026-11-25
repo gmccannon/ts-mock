@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "prepare": "npm run build",
     "test": "vitest"
   },
@@ -23,12 +23,12 @@
   "author": "George McCannon",
   "license": "MIT",
   "dependencies": {
-    "ts-morph": "^22.0.0",
-    "@types/node": "^20.0.0",
-    "typescript": "^5.4.0"
+    "ts-morph": "^28.0.0"
   },
   "devDependencies": {
-    "vitest": "^1.0.0"
+    "@types/node": "^24.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^5.1.1"
   },
   "engines": {
     "node": ">=18"
