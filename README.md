@@ -15,45 +15,74 @@ It's a test-time tool — install it as a dev dependency. It needs a reachable `
 
 ## Example
 
-Suppose you have the type:
+Suppose you have the following type:
 ```ts
-type UserProfile = {
-  id: number;
-  name: string;
-  address: {
-    city: string;
-    zip: string;
-  };
-  preferences: {
-    theme: string;
-    notifications: boolean;
-  };
-  createdAt: Date;
-};
-```
+enum OrderStatus {
+  Pending,
+  Shipped,
+  Delivered,
+  Cancelled,
+}
 
-With the following function to test
-```ts
-function updateTheme(user: UserProfile, newTheme: string): UserProfile {
-  return {
-    ...user
-    preferences: { theme: newTheme};
-  }
+interface LineItem {
+  sku: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+interface Order {
+  id: string;
+  customer: {
+    name: string;
+    email: string;
+    shippingAddress: {
+      city: string;
+      zip: string;
+    };
+  };
+  items: LineItem[];
+  status: OrderStatus;
+  discountCode?: string;
+  placedAt: Date;
 }
 ```
 
-You can use `generateMock` like this
+With the following functions to test:
+```ts
+function calculateOrderTotal(order: Order): number {
+  return order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+}
+
+function markAsShipped(order: Order): Order {
+  return { ...order, status: OrderStatus.Shipped };
+}
+```
+
+You only have to specify the fields each test cares about:
 ```ts
 import { generateMock } from 'ts-mockgen';
 
-it('should update the user theme', () => {
-  const mockUser: UserProfile = generateMock("UserProfile", {
-    preferences: { theme: "light" },
+it('calculates the order total from line items', () => {
+  const order: Order = generateMock("Order", {
+    items: [
+      { sku: "WIDGET-1", quantity: 2, unitPrice: 9.99 },
+      { sku: "GADGET-9", quantity: 1, unitPrice: 24.5 },
+    ],
   });
-  
-  const updatedMockUser = updateTheme(mockUser, 'dark');
-  
-  expect(updatedMockUser.preferences.theme).toBe('dark');
+
+  expect(calculateOrderTotal(order)).toBeCloseTo(44.48);
+});
+
+it('marks an order as shipped without touching other fields', () => {
+  const order: Order = generateMock("Order", {
+    customer: { email: "jane@example.com" },
+  });
+
+  const shipped = markAsShipped(order);
+
+  expect(shipped.status).toBe(OrderStatus.Shipped);
+  expect(shipped.customer.email).toBe("jane@example.com");
+  expect(shipped.customer.name).toBeTypeOf("string");
 });
 ```
 
@@ -66,13 +95,17 @@ it('should update the user theme', () => {
 | `string`                            | `"example"`                                    |
 | `number`                            | `42`                                            |
 | `boolean`                           | `true`                                          |
+| `bigint`                            | `42n`                                           |
 | `Date`                              | `new Date()`                                    |
+| `RegExp`                            | `/example/`                                     |
 | nested object / interface           | recursively mocked object                       |
+| intersection (`A & B`)              | object with properties from every member mocked |
 | literal union (`'A' \| 'B'`)        | first member (e.g. `'A'`)                       |
 | `enum`                              | first member's value                            |
 | optional / nullable (`T \| undefined \| null`) | mocked as `T` — the `undefined`/`null` branch is dropped |
-| `T[]` / tuple (`[A, B]`)            | array/tuple with each element mocked            |
-| `Map<K, V>` / `Set<T>`              | empty `Map`/`Set` instance                      |
-| `Record<K, V>` / index signature    | `{}`                                            |
+| `T[]` / `ReadonlyArray<T>` / tuple (`[A, B]`) | array/tuple with each element mocked  |
+| `Map<K, V>` / `Set<T>` / `ReadonlyMap<K, V>` / `ReadonlySet<T>` | empty `Map`/`Set` instance |
+| `Promise<T>`                        | `Promise.resolve(mockOfT)`                      |
+| `Record<K, V>` / index signature    | `{}` by default — see [Options](#options) to populate sample entries |
 | function (`() => void`)             | a callable no-op                                |
 | self-referential / circular type    | bottoms out instead of recursing forever        |

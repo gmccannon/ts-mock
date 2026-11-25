@@ -195,9 +195,79 @@ describe("Map, Set, and Record fields", () => {
     expect(mock.lookup).toBeInstanceOf(Map);
   });
 
-  it("mocks Record/index-signature fields to an empty object", () => {
+  it("mocks Record/index-signature fields to an empty object by default", () => {
     const mock: Collections = generateMock("Collections");
 
     expect(mock.byId).toEqual({});
+  });
+
+  it("populates sample Record entries when sampleRecordEntries is set", () => {
+    const mock: Collections = generateMock("Collections", {}, { sampleRecordEntries: 2 });
+
+    const keys = Object.keys(mock.byId);
+    expect(keys).toHaveLength(2);
+    for (const key of keys) {
+      expect(typeof mock.byId[key]).toBe("string");
+    }
+  });
+});
+
+type ReadonlyCollections = {
+  tags: ReadonlyArray<string>;
+  seen: ReadonlySet<string>;
+  lookup: ReadonlyMap<string, number>;
+};
+
+describe("readonly collection fields", () => {
+  it("mocks ReadonlyArray/ReadonlySet/ReadonlyMap fields like their mutable counterparts", () => {
+    const mock: ReadonlyCollections = generateMock("ReadonlyCollections");
+
+    expect(Array.isArray(mock.tags)).toBe(true);
+    expect(typeof mock.tags[0]).toBe("string");
+    expect(mock.seen).toBeInstanceOf(Set);
+    expect(mock.lookup).toBeInstanceOf(Map);
+  });
+});
+
+type ExtraPrimitives = {
+  bigNumber: bigint;
+  pattern: RegExp;
+};
+
+describe("bigint and RegExp fields", () => {
+  it("mocks a bigint field to a real bigint", () => {
+    const mock: ExtraPrimitives = generateMock("ExtraPrimitives");
+    expect(typeof mock.bigNumber).toBe("bigint");
+  });
+
+  it("mocks a RegExp field to a real RegExp", () => {
+    const mock: ExtraPrimitives = generateMock("ExtraPrimitives");
+    expect(mock.pattern).toBeInstanceOf(RegExp);
+  });
+});
+
+type AsyncProfile = {
+  userId: Promise<number>;
+};
+
+describe("Promise fields", () => {
+  it("mocks a Promise<T> field to a promise that resolves to a mocked T", async () => {
+    const mock: AsyncProfile = generateMock("AsyncProfile");
+
+    expect(mock.userId).toBeInstanceOf(Promise);
+    await expect(mock.userId).resolves.toBe(42);
+  });
+});
+
+type HasName = { a: string };
+type HasAge = { b: number };
+type Intersected = HasName & HasAge;
+
+describe("intersection types", () => {
+  it("mocks an intersection type with properties from every member", () => {
+    const mock: Intersected = generateMock("Intersected");
+
+    expect(typeof mock.a).toBe("string");
+    expect(typeof mock.b).toBe("number");
   });
 });
