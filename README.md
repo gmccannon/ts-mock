@@ -76,9 +76,3 @@ it('should update the user theme', () => {
 | `Record<K, V>` / index signature    | `{}`                                            |
 | function (`() => void`)             | a callable no-op                                |
 | self-referential / circular type    | bottoms out instead of recursing forever        |
-
-Unknown type names throw: `generateMock("DoesNotExist")` → `Error: Type DoesNotExist not found in project`.
-
-### Performance note
-
-`generateMock` caches the parsed `ts-morph` project per `tsconfig.json` path for the lifetime of the process, so only the first call pays for a full project parse — subsequent calls (e.g. across many tests in a suite) are effectively instant. This means the cache won't notice brand-new types added to disk mid-run in watch mode; restart the test runner to pick those up.
