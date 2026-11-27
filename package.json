@@ -1,6 +1,6 @@
 {
   "name": "ts-mockgen",
-  "version": "0.0.14",
+  "version": "0.0.16",
   "description": "Generate mock objects from TypeScript types using the TypeScript AST (ts-morph).",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

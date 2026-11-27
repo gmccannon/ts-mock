@@ -152,6 +152,13 @@ describe("enums", () => {
   });
 });
 
+describe("top-level enum lookup", () => {
+  it("mocks an enum type looked up directly by name", () => {
+    const mock = generateMock("Color");
+    expect(Object.values(Color)).toContain(mock);
+  });
+});
+
 interface LinkedNode {
   value: number;
   next?: LinkedNode;

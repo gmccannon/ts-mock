@@ -2,7 +2,12 @@ import path from "path";
 import fs from "fs";
 import { Project, Type, ts } from "ts-morph";
 
-const projectCache = new Map<string, Project>();
+interface ProjectCacheEntry {
+  project: Project;
+  typeIndex: Map<string, () => Type>;
+}
+const projectCache = new Map<string, ProjectCacheEntry>();
+const tsconfigCache = new Map<string, string | null>();
 
 export interface MockOptions {
   /**
@@ -13,8 +18,23 @@ export interface MockOptions {
 }
 
 interface MockContext {
-  seen: Set<string>;
+  seen: Set<ts.Type>;
   options: MockOptions;
+}
+
+function buildTypeIndex(project: Project): Map<string, () => Type> {
+  const index = new Map<string, () => Type>();
+  for (const sf of project.getSourceFiles()) {
+    for (const decl of [...sf.getTypeAliases(), ...sf.getInterfaces(), ...sf.getEnums()]) {
+      const name = decl.getName();
+      if (!index.has(name)) index.set(name, () => decl.getType());
+    }
+    for (const exportSymbol of sf.getExportSymbols()) {
+      const name = exportSymbol.getName();
+      if (!index.has(name)) index.set(name, () => exportSymbol.getDeclaredType());
+    }
+  }
+  return index;
 }
 
 /**
@@ -35,34 +55,17 @@ export function generateMock(
 ): any {
   const tsconfigPath = findTsConfig(process.cwd()) || path.resolve("./tsconfig.json");
 
-  let project = projectCache.get(tsconfigPath);
-  if (!project) {
-    project = new Project({
+  let entry = projectCache.get(tsconfigPath);
+  if (!entry) {
+    const project = new Project({
       tsConfigFilePath: tsconfigPath,
       skipAddingFilesFromTsConfig: false,
     });
-    projectCache.set(tsconfigPath, project);
+    entry = { project, typeIndex: buildTypeIndex(project) };
+    projectCache.set(tsconfigPath, entry);
   }
 
-  const sourceFiles = project.getSourceFiles();
-  let foundType: Type | undefined;
-
-  for (const sf of sourceFiles) {
-    const namedDeclaration = sf.getTypeAlias(typeName) || sf.getInterface(typeName) || sf.getEnum(typeName);
-    if (namedDeclaration) {
-      foundType = namedDeclaration.getType();
-      break;
-    }
-
-    for (const exportSymbol of sf.getExportSymbols()) {
-      if (exportSymbol.getName() === typeName) {
-        foundType = exportSymbol.getDeclaredType();
-        break;
-      }
-    }
-
-    if (foundType) break;
-  }
+  const foundType = entry.typeIndex.get(typeName)?.();
 
   if (!foundType) {
     throw new Error(`Type ${typeName} not found in project`);
@@ -73,18 +76,26 @@ export function generateMock(
 }
 
 function findTsConfig(startDir: string): string | null {
-  let currentDir = path.resolve(startDir);
+  const cwd = path.resolve(startDir);
+  if (tsconfigCache.has(cwd)) return tsconfigCache.get(cwd)!;
+
+  let currentDir = cwd;
+  let result: string | null = null;
 
   while (true) {
     const tsconfigPath = path.join(currentDir, "tsconfig.json");
-    if (fs.existsSync(tsconfigPath)) return tsconfigPath;
+    if (fs.existsSync(tsconfigPath)) {
+      result = tsconfigPath;
+      break;
+    }
 
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir) break;
     currentDir = parentDir;
   }
 
-  return null;
+  tsconfigCache.set(cwd, result);
+  return result;
 }
 
 const WELL_KNOWN_WRAPPERS = new Set(["Map", "Set", "ReadonlyMap", "ReadonlySet", "Promise"]);
@@ -142,43 +153,45 @@ function mockFromType(type: Type<ts.Type>, ctx: MockContext): any {
   }
 
   if (type.isObject() || type.isIntersection()) {
-    const typeKey = type.getText();
+    const typeKey = type.compilerType;
     if (ctx.seen.has(typeKey)) return null;
 
-    const nextCtx: MockContext = { seen: new Set(ctx.seen), options: ctx.options };
-    nextCtx.seen.add(typeKey);
+    ctx.seen.add(typeKey);
+    try {
+      const properties = type.getProperties();
+      const mock: Record<string, any> = {};
 
-    const properties = type.getProperties();
-    const mock: Record<string, any> = {};
+      for (const prop of properties) {
+        const declaration = prop.getValueDeclaration();
+        if (!declaration) {
+          mock[prop.getName()] = null;
+          continue;
+        }
 
-    for (const prop of properties) {
-      const declaration = prop.getValueDeclaration();
-      if (!declaration) {
-        mock[prop.getName()] = null;
-        continue;
+        const propType = prop.getTypeAtLocation(declaration);
+        mock[prop.getName()] = mockFromType(propType, ctx);
       }
 
-      const propType = prop.getTypeAtLocation(declaration);
-      mock[prop.getName()] = mockFromType(propType, nextCtx);
-    }
+      const sampleRecordEntries = ctx.options.sampleRecordEntries ?? 0;
+      if (sampleRecordEntries > 0) {
+        const stringIndexType = type.getStringIndexType();
+        const numberIndexType = type.getNumberIndexType();
 
-    const sampleRecordEntries = ctx.options.sampleRecordEntries ?? 0;
-    if (sampleRecordEntries > 0) {
-      const stringIndexType = type.getStringIndexType();
-      const numberIndexType = type.getNumberIndexType();
-
-      if (stringIndexType) {
-        for (let i = 1; i <= sampleRecordEntries; i++) {
-          mock[`exampleKey${i}`] = mockFromType(stringIndexType, nextCtx);
-        }
-      } else if (numberIndexType) {
-        for (let i = 0; i < sampleRecordEntries; i++) {
-          mock[i] = mockFromType(numberIndexType, nextCtx);
+        if (stringIndexType) {
+          for (let i = 1; i <= sampleRecordEntries; i++) {
+            mock[`exampleKey${i}`] = mockFromType(stringIndexType, ctx);
+          }
+        } else if (numberIndexType) {
+          for (let i = 0; i < sampleRecordEntries; i++) {
+            mock[i] = mockFromType(numberIndexType, ctx);
+          }
         }
       }
-    }
 
-    return mock;
+      return mock;
+    } finally {
+      ctx.seen.delete(typeKey);
+    }
   }
 
   return null;
