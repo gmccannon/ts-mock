@@ -61,7 +61,7 @@ You only have to specify the fields each test cares about:
 import { generateMock } from 'ts-mockgen';
 
 it('calculates the order total from line items', () => {
-  const order: Order = generateMock("Order", {
+  const order = generateMock<Order>({
     items: [
       { sku: "WIDGET-1", quantity: 2, unitPrice: 9.99 },
       { sku: "GADGET-9", quantity: 1, unitPrice: 24.5 },
@@ -72,7 +72,7 @@ it('calculates the order total from line items', () => {
 });
 
 it('marks an order as shipped without touching other fields', () => {
-  const order: Order = generateMock("Order", {
+  const order = generateMock<Order>({
     customer: { email: "jane@example.com" },
   });
 
@@ -86,7 +86,7 @@ it('marks an order as shipped without touching other fields', () => {
 
 ## Supported types
 
-`generateMock` walks the shape of the named type and fills in a reasonable default per field:
+`generateMock<T>()` walks the shape of `T` and fills in a reasonable default per field:
 
 | Type                               | Mock value                                    |
 | ----------------------------------- | ---------------------------------------------- |

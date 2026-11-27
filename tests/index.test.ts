@@ -20,7 +20,7 @@ type UserProfile = {
 
 describe("generateMock", () => {
   it("generates mock with all fields filled", () => {
-    const mockUser: UserProfile = generateMock("UserProfile");
+    const mockUser = generateMock<UserProfile>();
 
     expect(mockUser.id).toBeDefined();
     expect(typeof mockUser.id).toBe("number");
@@ -44,7 +44,7 @@ describe("generateMock", () => {
   });
 
   it("respects overrides", () => {
-    const mockUser: UserProfile = generateMock("UserProfile", {
+    const mockUser = generateMock<UserProfile>({
       name: "George",
       address: { city: "Akron" },
     });
@@ -55,7 +55,7 @@ describe("generateMock", () => {
   });
 
   it("applies overrides deeply", () => {
-    const mockUser: UserProfile = generateMock("UserProfile", {
+    const mockUser = generateMock<UserProfile>({
       preferences: { theme: "light" },
     });
 
@@ -64,7 +64,7 @@ describe("generateMock", () => {
   });
 
   it("overrides only some values and preserves the rest", () => {
-    const mockUser: UserProfile = generateMock("UserProfile", {
+    const mockUser = generateMock<UserProfile>({
       id: 999,
       createdAt: new Date("2020-01-01"),
     });
@@ -76,17 +76,17 @@ describe("generateMock", () => {
   });
 
   it("should be able to override union types", () => {
-  const mockUser: UserProfile = generateMock("UserProfile", {
+    const mockUser = generateMock<UserProfile>({
       id: 999,
       level: 'Regular'
     });
 
-  expect(mockUser.id).toBe(999);
-  expect(mockUser.level).toBe("Regular");
+    expect(mockUser.id).toBe(999);
+    expect(mockUser.level).toBe("Regular");
   })
 
-  it("throws for an unknown type name", () => {
-    expect(() => generateMock("DoesNotExist")).toThrow(/not found in project/);
+  it("throws when no explicit type argument is given", () => {
+    expect(() => generateMock()).toThrow(/explicit type argument/);
   });
 });
 
@@ -98,7 +98,7 @@ type ProfileWithOptional = {
 
 describe("optional and nullable fields", () => {
   it("fills in optional fields with a real value instead of undefined", () => {
-    const mock: ProfileWithOptional = generateMock("ProfileWithOptional");
+    const mock = generateMock<ProfileWithOptional>();
 
     expect(mock.id).toBeDefined();
     expect(typeof mock.zip).toBe("string");
@@ -114,7 +114,7 @@ type TaggedList = {
 
 describe("arrays and tuples", () => {
   it("mocks array fields as non-empty arrays of the right element type", () => {
-    const mock: TaggedList = generateMock("TaggedList");
+    const mock = generateMock<TaggedList>();
 
     expect(Array.isArray(mock.tags)).toBe(true);
     expect(mock.tags.length).toBeGreaterThan(0);
@@ -125,7 +125,7 @@ describe("arrays and tuples", () => {
   });
 
   it("mocks tuple fields element-by-element", () => {
-    const mock: TaggedList = generateMock("TaggedList");
+    const mock = generateMock<TaggedList>();
 
     expect(Array.isArray(mock.pair)).toBe(true);
     expect(mock.pair).toHaveLength(2);
@@ -146,15 +146,15 @@ type Palette = {
 
 describe("enums", () => {
   it("mocks an enum field to a valid member", () => {
-    const mock: Palette = generateMock("Palette");
+    const mock = generateMock<Palette>();
 
     expect(Object.values(Color)).toContain(mock.primary);
   });
 });
 
 describe("top-level enum lookup", () => {
-  it("mocks an enum type looked up directly by name", () => {
-    const mock = generateMock("Color");
+  it("mocks an enum type looked up directly as the type argument", () => {
+    const mock = generateMock<Color>();
     expect(Object.values(Color)).toContain(mock);
   });
 });
@@ -166,7 +166,7 @@ interface LinkedNode {
 
 describe("recursive types", () => {
   it("terminates instead of infinitely recursing on a self-referential type", () => {
-    const mock: LinkedNode = generateMock("LinkedNode");
+    const mock = generateMock<LinkedNode>();
 
     expect(typeof mock.value).toBe("number");
     // `next` bottoms out rather than recursing forever.
@@ -181,7 +181,7 @@ type ClickHandler = {
 
 describe("function-typed properties", () => {
   it("mocks a function field to a callable no-op", () => {
-    const mock: ClickHandler = generateMock("ClickHandler");
+    const mock = generateMock<ClickHandler>();
 
     expect(typeof mock.onClick).toBe("function");
     expect(() => mock.onClick()).not.toThrow();
@@ -196,20 +196,20 @@ type Collections = {
 
 describe("Map, Set, and Record fields", () => {
   it("mocks Map and Set fields to empty instances", () => {
-    const mock: Collections = generateMock("Collections");
+    const mock = generateMock<Collections>();
 
     expect(mock.seen).toBeInstanceOf(Set);
     expect(mock.lookup).toBeInstanceOf(Map);
   });
 
   it("mocks Record/index-signature fields to an empty object by default", () => {
-    const mock: Collections = generateMock("Collections");
+    const mock = generateMock<Collections>();
 
     expect(mock.byId).toEqual({});
   });
 
   it("populates sample Record entries when sampleRecordEntries is set", () => {
-    const mock: Collections = generateMock("Collections", {}, { sampleRecordEntries: 2 });
+    const mock = generateMock<Collections>({}, { sampleRecordEntries: 2 });
 
     const keys = Object.keys(mock.byId);
     expect(keys).toHaveLength(2);
@@ -227,7 +227,7 @@ type ReadonlyCollections = {
 
 describe("readonly collection fields", () => {
   it("mocks ReadonlyArray/ReadonlySet/ReadonlyMap fields like their mutable counterparts", () => {
-    const mock: ReadonlyCollections = generateMock("ReadonlyCollections");
+    const mock = generateMock<ReadonlyCollections>();
 
     expect(Array.isArray(mock.tags)).toBe(true);
     expect(typeof mock.tags[0]).toBe("string");
@@ -243,12 +243,12 @@ type ExtraPrimitives = {
 
 describe("bigint and RegExp fields", () => {
   it("mocks a bigint field to a real bigint", () => {
-    const mock: ExtraPrimitives = generateMock("ExtraPrimitives");
+    const mock = generateMock<ExtraPrimitives>();
     expect(typeof mock.bigNumber).toBe("bigint");
   });
 
   it("mocks a RegExp field to a real RegExp", () => {
-    const mock: ExtraPrimitives = generateMock("ExtraPrimitives");
+    const mock = generateMock<ExtraPrimitives>();
     expect(mock.pattern).toBeInstanceOf(RegExp);
   });
 });
@@ -259,7 +259,7 @@ type AsyncProfile = {
 
 describe("Promise fields", () => {
   it("mocks a Promise<T> field to a promise that resolves to a mocked T", async () => {
-    const mock: AsyncProfile = generateMock("AsyncProfile");
+    const mock = generateMock<AsyncProfile>();
 
     expect(mock.userId).toBeInstanceOf(Promise);
     await expect(mock.userId).resolves.toBe(42);
@@ -272,7 +272,7 @@ type Intersected = HasName & HasAge;
 
 describe("intersection types", () => {
   it("mocks an intersection type with properties from every member", () => {
-    const mock: Intersected = generateMock("Intersected");
+    const mock = generateMock<Intersected>();
 
     expect(typeof mock.a).toBe("string");
     expect(typeof mock.b).toBe("number");

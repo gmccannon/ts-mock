@@ -1,12 +1,11 @@
 import path from "path";
 import fs from "fs";
-import { Project, Type, ts } from "ts-morph";
+import { fileURLToPath } from "node:url";
+import { CallExpression, Node, Project, SourceFile, Type, ts } from "ts-morph";
 
-interface ProjectCacheEntry {
-  project: Project;
-  typeIndex: Map<string, () => Type>;
-}
-const projectCache = new Map<string, ProjectCacheEntry>();
+const THIS_FILE = fileURLToPath(import.meta.url);
+
+const projectCache = new Map<string, Project>();
 const tsconfigCache = new Map<string, string | null>();
 
 export interface MockOptions {
@@ -22,57 +21,128 @@ interface MockContext {
   options: MockOptions;
 }
 
-function buildTypeIndex(project: Project): Map<string, () => Type> {
-  const index = new Map<string, () => Type>();
-  for (const sf of project.getSourceFiles()) {
-    for (const decl of [...sf.getTypeAliases(), ...sf.getInterfaces(), ...sf.getEnums()]) {
-      const name = decl.getName();
-      if (!index.has(name)) index.set(name, () => decl.getType());
-    }
-    for (const exportSymbol of sf.getExportSymbols()) {
-      const name = exportSymbol.getName();
-      if (!index.has(name)) index.set(name, () => exportSymbol.getDeclaredType());
-    }
-  }
-  return index;
-}
+type DeepPartial<T> = T extends Date | RegExp | Map<any, any> | Set<any> | ((...args: any[]) => any)
+  ? T
+  : T extends Array<infer U>
+    ? Array<DeepPartial<U>>
+    : T extends object
+      ? { [K in keyof T]?: DeepPartial<T[K]> }
+      : T;
 
 /**
- * Generates a mock object based on a TypeScript type name defined in the current project.
+ * Generates a mock object matching the shape of `T`, with default values filled in and
+ * `overrides` applied. `T` must be given explicitly as a type argument — it's resolved by
+ * inspecting the call site's source position, not by runtime type inference.
  *
- * @param typeName - The name of the TypeScript type to mock (interface, type alias, enum, or exported type).
- * @param overrides - Optional object specifying values to override in the generated mock.
- * @param options - Optional settings controlling how certain types are mocked.
+ * @example generateMock<Order>({ items: [...] })
  *
- * @returns A mock object matching the specified type with default values filled in and overrides applied.
- *
- * @throws Error if the specified type is not found in the project’s source files.
+ * @throws Error if no explicit type argument is given, or if the call site can't be resolved.
  */
-export function generateMock(
-  typeName: string,
-  overrides: Record<string, any> = {},
-  options: MockOptions = {}
-): any {
+export function generateMock<T = unknown>(overrides: DeepPartial<T> = {} as DeepPartial<T>, options: MockOptions = {}): T {
   const tsconfigPath = findTsConfig(process.cwd()) || path.resolve("./tsconfig.json");
 
-  let entry = projectCache.get(tsconfigPath);
-  if (!entry) {
-    const project = new Project({
+  let project = projectCache.get(tsconfigPath);
+  if (!project) {
+    project = new Project({
       tsConfigFilePath: tsconfigPath,
       skipAddingFilesFromTsConfig: false,
     });
-    entry = { project, typeIndex: buildTypeIndex(project) };
-    projectCache.set(tsconfigPath, entry);
+    projectCache.set(tsconfigPath, project);
   }
 
-  const foundType = entry.typeIndex.get(typeName)?.();
-
-  if (!foundType) {
-    throw new Error(`Type ${typeName} not found in project`);
-  }
+  const foundType = resolveCallSiteType(project);
 
   const mock = mockFromType(foundType, { seen: new Set(), options });
-  return deepMerge(mock, overrides);
+  return deepMerge(mock, overrides) as T;
+}
+
+function getCallerSite(): { file: string; line: number; column: number } {
+  const stackLines = (new Error().stack ?? "").split("\n").slice(1);
+  for (const raw of stackLines) {
+    const match = /^at\s+(?:.*?\s+\()?(.+):(\d+):(\d+)\)?$/.exec(raw.trim());
+    if (!match) continue;
+    const [, file, lineStr, colStr] = match;
+    if (file === THIS_FILE) continue; // skip frames inside this library's own module
+    return { file, line: Number(lineStr), column: Number(colStr) };
+  }
+  throw new Error(
+    "ts-mockgen: could not determine the call site of generateMock<T>(). " +
+      "This runtime may not provide the stack trace format this relies on."
+  );
+}
+
+function resolveCallSiteType(project: Project): Type {
+  const site = getCallerSite();
+  const absPath = path.resolve(site.file);
+
+  const sourceFile = project.getSourceFile(absPath) ?? project.addSourceFileAtPathIfExists(absPath);
+  if (!sourceFile) {
+    throw new Error(
+      `ts-mockgen: could not locate source file "${absPath}" in the TypeScript project. ` +
+        `Make sure it is included by your tsconfig.`
+    );
+  }
+
+  const pos = sourceFile.compilerNode.getPositionOfLineAndCharacter(site.line - 1, site.column - 1);
+  const callExpr = findGenerateMockCallExpression(sourceFile, pos, site.line);
+
+  const typeArgs = callExpr.getTypeArguments();
+  if (typeArgs.length === 0) {
+    throw new Error(
+      "ts-mockgen: generateMock<T>() requires an explicit type argument, e.g. generateMock<YourType>()."
+    );
+  }
+  return typeArgs[0].getType();
+}
+
+function findGenerateMockCallExpression(sourceFile: SourceFile, pos: number, line: number): CallExpression {
+  const nearNode = sourceFile.getDescendantAtPos(pos);
+  const direct = nearNode && climbToGenerateMockCall(nearNode);
+  if (direct) return direct;
+
+  // Column was imprecise/unavailable — scan the whole line for exactly one candidate.
+  const lineStart = sourceFile.compilerNode.getPositionOfLineAndCharacter(line - 1, 0);
+  const lineEnd = sourceFile.compilerNode.getPositionOfLineAndCharacter(line, 0);
+  const matches: CallExpression[] = [];
+  sourceFile.forEachDescendant((node) => {
+    if (
+      Node.isCallExpression(node) &&
+      node.getStart() >= lineStart &&
+      node.getStart() < lineEnd &&
+      isGenerateMockCallee(node)
+    ) {
+      matches.push(node);
+    }
+  });
+
+  if (matches.length === 1) return matches[0];
+  if (matches.length === 0) {
+    throw new Error(`ts-mockgen: could not find a generateMock<T>() call at ${sourceFile.getFilePath()}:${line}.`);
+  }
+  throw new Error(
+    `ts-mockgen: found multiple generateMock(...) calls on ${sourceFile.getFilePath()}:${line} — ` +
+      `put each generateMock<T>() call on its own line.`
+  );
+}
+
+function climbToGenerateMockCall(node: Node): CallExpression | undefined {
+  let current: Node | undefined = node;
+  while (current) {
+    if (Node.isCallExpression(current) && isGenerateMockCallee(current)) return current;
+    current = current.getParent();
+  }
+  return undefined;
+}
+
+function isGenerateMockCallee(callExpr: CallExpression): boolean {
+  const expr = callExpr.getExpression();
+  if (Node.isIdentifier(expr)) {
+    if (expr.getText() === "generateMock") return true;
+    const defs = expr.getSymbol()?.getDeclarations() ?? [];
+    return defs.some((d) => Node.isImportSpecifier(d) && d.getNameNode().getText() === "generateMock");
+  }
+  if (Node.isPropertyAccessExpression(expr)) return expr.getName() === "generateMock";
+  return false;
 }
 
 function findTsConfig(startDir: string): string | null {
